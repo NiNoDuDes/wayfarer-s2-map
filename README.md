@@ -16,7 +16,7 @@ A mobile-friendly browser map for Pokémon GO Wayfarer nominations.
 1. Create a new GitHub repo named `wayfarer-s2-map`
 2. Push all files in this folder to the `main` branch
 3. Go to **Settings → Pages → Source** → select `main` branch, `/ (root)`
-4. Your map will be at `https://YOUR-USERNAME.github.io/wayfarer-s2-map/`
+4. Your map will be at `https://ninodudes.github.io/wayfarer-s2-map/`
 5. Update the bookmarklet URL in `bookmarklet.html` with your actual GitHub username
 
 ## Local use
