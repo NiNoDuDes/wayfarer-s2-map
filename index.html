@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wayfarer S2 Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="controls">
+    <button id="btn-gps" class="ctrl-btn active" title="Center on GPS">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/>
+        <line x1="12" y1="2" x2="12" y2="4"/>
+        <line x1="12" y1="20" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="4" y2="12"/>
+        <line x1="20" y1="12" x2="22" y2="12"/>
+      </svg>
+    </button>
+    <button id="btn-l14" class="ctrl-btn toggle-btn active" data-level="14" title="Toggle L14 cells">L14</button>
+    <button id="btn-l17" class="ctrl-btn toggle-btn active" data-level="17" title="Toggle L17 cells">L17</button>
+    <button id="btn-stops" class="ctrl-btn toggle-btn" data-layer="stops" title="Import / toggle stops">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+    </button>
+    <button id="btn-sat" class="ctrl-btn" title="Toggle satellite view">SAT</button>
+  </div>
+
+  <!-- Import Stops modal -->
+  <div id="import-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>Import Stops</span>
+        <button id="import-close">✕</button>
+      </div>
+      <p class="modal-note">
+        <strong>No public API exists</strong> for Niantic/Wayfarer stop data.
+        Export your stops manually (e.g. via IITC Intel export) and paste the
+        JSON array below.
+      </p>
+      <textarea id="import-textarea" spellcheck="false"
+        placeholder='[{"lat":48.137,"lng":11.576,"type":"stop","name":"My Stop"}]'></textarea>
+      <div class="modal-actions">
+        <button id="import-clear" class="modal-btn secondary">Clear all</button>
+        <button id="import-load" class="modal-btn primary">Load Stops</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stop-badge" class="hidden"></div>
+
+  <div id="info-panel" class="hidden">
+    <div id="info-header">
+      <span id="info-title">Cell Info</span>
+      <button id="info-close">✕</button>
+    </div>
+    <div id="info-body"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="s2.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wayfarer S2 Bookmarklet — Install Guide</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a18;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+      --blue: #4dabf7;
+      --yellow: #ffd600;
+      --green: #4caf50;
+      --red: #f44336;
+      --text: #ccc;
+      --muted: #777;
+      --radius: 12px;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+      line-height: 1.6;
+    }
+
+    /* ── Typography ── */
+    h1 { font-size: 24px; color: var(--blue); margin-bottom: 6px; }
+    h2 { font-size: 16px; color: var(--blue); margin-bottom: 12px; }
+    h3 { font-size: 14px; color: #eee; margin: 16px 0 8px; }
+    p  { font-size: 14px; color: var(--text); margin-bottom: 10px; }
+
+    a { color: var(--blue); }
+
+    code, kbd {
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--blue);
+    }
+
+    kbd {
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #eee;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-accent-blue  { border-left: 3px solid var(--blue); }
+    .card-accent-yellow { border-left: 3px solid var(--yellow); }
+    .card-accent-green  { border-left: 3px solid var(--green); }
+
+    /* ── Bookmarklet drag button ── */
+    #bm-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--blue);
+      color: #0a0a18;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 15px;
+      padding: 11px 22px;
+      border-radius: 10px;
+      cursor: grab;
+      user-select: none;
+      box-shadow: 0 2px 12px rgba(77,171,247,0.35);
+      margin-bottom: 10px;
+    }
+    #bm-link:active { cursor: grabbing; transform: scale(0.97); }
+
+    /* ── Copy box ── */
+    .copy-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-top: 12px;
+    }
+
+    #bm-text {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #aaa;
+      font-family: 'SF Mono', monospace;
+      font-size: 11px;
+      padding: 8px 10px;
+      resize: none;
+      height: 64px;
+      outline: none;
+    }
+
+    #bm-text:focus { border-color: var(--blue); }
+
+    #copy-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      color: #ccc;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    #copy-btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+    #copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* ── Steps list ── */
+    ol.steps, ul.steps {
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    ol.steps li, ul.steps li {
+      font-size: 13px;
+      color: #bbb;
+      line-height: 1.5;
+    }
+
+    ol.steps li strong, ul.steps li strong { color: #eee; }
+
+    .step-img {
+      display: block;
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.15);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      margin: 6px 0;
+      font-family: monospace;
+    }
+
+    /* ── Platform tabs ── */
+    .tab-group { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+
+    .tab {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: rgba(77,171,247,0.12);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Chip ── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      vertical-align: middle;
+    }
+    .chip-blue { background: rgba(77,171,247,0.18); color: var(--blue); border: 1px solid rgba(77,171,247,0.3); }
+    .chip-yellow { background: rgba(255,214,0,0.15); color: var(--yellow); border: 1px solid rgba(255,214,0,0.3); }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* ── Gym table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--blue); font-weight: 700; }
+    td { color: #bbb; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Section anchor ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* ── Header row ── */
+    .page-header { margin-bottom: 24px; }
+    .page-header p { color: var(--muted); font-size: 13px; }
+
+    /* ── Note box ── */
+    .note {
+      background: rgba(255,193,7,0.08);
+      border-left: 3px solid #ffc107;
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #bbb;
+      margin-bottom: 12px;
+    }
+    .note strong { color: #ffc107; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>Wayfarer S2 Bookmarklet</h1>
+    <p>Injects S2 L14 &amp; L17 cell overlays directly onto the Wayfarer Google Map — no app, no extension required.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 1 — THE BOOKMARKLET
+  ════════════════════════════════════════════════════════════════ -->
+
+  <div class="section-label">Step 1 — Get the bookmarklet</div>
+
+  <div class="card card-accent-blue">
+    <h2>Drag to your bookmarks bar</h2>
+    <p>On desktop: drag the button below to your browser's bookmarks bar, then click it while on Wayfarer.</p>
+
+    <a id="bm-link" title="Drag me to your bookmarks bar — do not click here">
+      ⬡ S2 Wayfarer
+    </a>
+
+    <p style="color:var(--muted);font-size:12px;margin-top:4px;">
+      The button above is a live <code>javascript:</code> link — drag it, don't click it on this page.
+    </p>
+
+    <hr>
+
+    <h3>Or copy the code manually (required for mobile)</h3>
+    <p style="font-size:13px;">Select all and copy the text below, then follow the platform instructions further down this page.</p>
+
+    <div class="copy-wrap">
+      <textarea id="bm-text" readonly spellcheck="false" autocomplete="off"></textarea>
+      <button id="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 2 — PLATFORM INSTRUCTIONS
+  ════════════════════════════════════════════════════════════════ -->
+
+  <div class="section-label" style="margin-top:28px;">Step 2 — Install on your device</div>
+
+  <div class="card">
+    <h2>Installation instructions</h2>
+
+    <div class="tab-group">
+      <button class="tab active" onclick="switchTab('ios')">iPhone (Safari)</button>
+      <button class="tab" onclick="switchTab('android')">Android (Chrome)</button>
+      <button class="tab" onclick="switchTab('desktop')">Desktop</button>
+    </div>
+
+    <!-- iOS Safari -->
+    <div id="tab-ios" class="tab-panel active">
+      <div class="note">
+        <strong>Safari on iPhone does not allow dragging bookmarks.</strong> You must create a bookmark first, then edit its URL.
+      </div>
+      <ol class="steps">
+        <li>
+          <strong>Copy the bookmarklet code</strong> — tap the <em>Copy</em> button above to copy the full <code>javascript:…</code> text to your clipboard.
+        </li>
+        <li>
+          <strong>Open Safari and go to any page</strong> — for example, open <a href="https://wayfarer.nianticlabs.com" target="_blank">wayfarer.nianticlabs.com</a>.
+        </li>
+        <li>
+          <strong>Bookmark the current page</strong> — tap the <strong>Share</strong> button <span style="font-size:16px">⎙</span> at the bottom of Safari, then tap <strong>Add Bookmark</strong>. Name it <em>S2 Wayfarer</em> and tap <strong>Save</strong>.
+          <span class="step-img">Share → Add Bookmark → Save</span>
+        </li>
+        <li>
+          <strong>Edit the bookmark URL</strong>:
+          <ol class="steps" style="margin-top:8px;list-style-type:lower-alpha;">
+            <li>Tap the <strong>book icon</strong> (Bookmarks) at the bottom of Safari.</li>
+            <li>Find <em>S2 Wayfarer</em>, then <strong>long-press → Edit</strong>.</li>
+            <li>Tap the <strong>Address</strong> field, select all (<kbd>triple-tap</kbd>), and <strong>paste</strong> the copied code.</li>
+            <li>Tap <strong>Done</strong>.</li>
+          </ol>
+        </li>
+        <li>
+          <strong>Use it on Wayfarer</strong>:
+          <ol class="steps" style="margin-top:8px;list-style-type:lower-alpha;">
+            <li>Navigate to <a href="https://wayfarer.nianticlabs.com" target="_blank">wayfarer.nianticlabs.com</a> and open a nomination so the map is visible.</li>
+            <li>Tap the <strong>address bar</strong> and type <em>S2 Wayfarer</em> — your bookmark will appear in suggestions.</li>
+            <li>Tap it. The S2 Cells panel will appear in the top-right corner of the map.</li>
+          </ol>
+          <span class="step-img">Address bar → type "S2" → tap bookmark suggestion</span>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Android Chrome -->
+    <div id="tab-android" class="tab-panel">
+      <div class="note">
+        <strong>Chrome on Android does not allow dragging bookmarks.</strong> Create a bookmark first, then edit it.
+      </div>
+      <ol class="steps">
+        <li>
+          <strong>Copy the bookmarklet code</strong> — tap <em>Copy</em> above.
+        </li>
+        <li>
+          <strong>Bookmark any page</strong> — open Chrome, tap the <strong>⋮ menu → Star / Bookmark this page</strong>. Name it <em>S2 Wayfarer</em> and save.
+          <span class="step-img">⋮ → Bookmark this page → Edit name → Save</span>
+        </li>
+        <li>
+          <strong>Edit the bookmark URL</strong>:
+          <ol class="steps" style="margin-top:8px;list-style-type:lower-alpha;">
+            <li>Tap the <strong>address bar</strong>, type <em>S2 Wayfarer</em> to surface the bookmark, then <strong>long-press the bookmark → Edit</strong>.</li>
+            <li>Clear the <strong>URL</strong> field and paste the copied <code>javascript:…</code> code.</li>
+            <li>Tap <strong>Save</strong>.</li>
+          </ol>
+        </li>
+        <li>
+          <strong>Use it on Wayfarer</strong>:
+          <ol class="steps" style="margin-top:8px;list-style-type:lower-alpha;">
+            <li>Go to <a href="https://wayfarer.nianticlabs.com" target="_blank">wayfarer.nianticlabs.com</a> and open a nomination map.</li>
+            <li>Tap the address bar, type <em>S2</em>, and tap the <em>S2 Wayfarer</em> bookmark.</li>
+            <li>The floating S2 panel will appear.</li>
+          </ol>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Desktop -->
+    <div id="tab-desktop" class="tab-panel">
+      <h3>Method A — Drag (easiest)</h3>
+      <ol class="steps">
+        <li>Make sure your <strong>bookmarks bar is visible</strong>:
+          <ul class="steps" style="margin-top:6px;">
+            <li>Chrome / Edge: <kbd>Ctrl+Shift+B</kbd> (Windows) or <kbd>⌘+Shift+B</kbd> (Mac)</li>
+            <li>Firefox: <kbd>Ctrl+Shift+B</kbd> → View → Toolbars → Bookmarks Toolbar</li>
+          </ul>
+        </li>
+        <li><strong>Drag</strong> the <strong>⬡ S2 Wayfarer</strong> button at the top of this page to your bookmarks bar.</li>
+        <li>Navigate to <a href="https://wayfarer.nianticlabs.com" target="_blank">wayfarer.nianticlabs.com</a>, open a nomination, and <strong>click the bookmark</strong>.</li>
+      </ol>
+
+      <hr>
+
+      <h3>Method B — Manual (if drag doesn't work)</h3>
+      <ol class="steps">
+        <li>Copy the <code>javascript:…</code> code from the box above.</li>
+        <li>Right-click your bookmarks bar → <strong>Add page…</strong> (Chrome) or <strong>New Bookmark</strong> (Firefox).</li>
+        <li>Set <strong>Name</strong> to <em>S2 Wayfarer</em> and paste the code into the <strong>URL</strong> field.</li>
+        <li>Save and click the bookmark while on Wayfarer.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 3 — HOW IT WORKS
+  ════════════════════════════════════════════════════════════════ -->
+
+  <div class="section-label" style="margin-top:28px;">What the bookmarklet does</div>
+
+  <div class="card card-accent-yellow">
+    <h2>Overlay behaviour</h2>
+    <ul class="steps">
+      <li><strong>Detects</strong> the Google Maps instance already running on Wayfarer — no external requests.</li>
+      <li><strong>Draws <span class="chip chip-blue">L14</span> cells</strong> as thick blue polygons (gym logic cells).</li>
+      <li><strong>Draws <span class="chip chip-yellow">L17</span> cells</strong> as thin yellow polygons (individual stop spacing).</li>
+      <li><strong>Updates automatically</strong> on every pan and zoom via the Google Maps <code>idle</code> event.</li>
+      <li>A small <strong>floating panel</strong> (top-right corner) lets you toggle each level on/off or dismiss it.</li>
+      <li>Clicking the bookmarklet a second time <strong>re-shows the panel</strong> if you dismissed it.</li>
+      <li>Cells only render when the zoom is useful — L14 at zoom ≥ 11, L17 at zoom ≥ 14.</li>
+      <li>All S2 geometry is <strong>computed locally</strong> inside the bookmarklet — no network calls, works offline.</li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 4 — GYM LOGIC
+  ════════════════════════════════════════════════════════════════ -->
+
+  <div class="card">
+    <h2>Gym count rules (per L14 cell)</h2>
+    <table>
+      <thead><tr><th>Stops in L14 cell</th><th>Gyms</th><th>Next gym trigger</th></tr></thead>
+      <tbody>
+        <tr><td>0 – 1</td><td>0</td><td>Add 2 stops total</td></tr>
+        <tr><td>2 – 5</td><td>1</td><td>Add 6 stops total</td></tr>
+        <tr><td>6 – 19</td><td>2</td><td>Add 20 stops total</td></tr>
+        <tr><td>20+</td><td>3</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+      Gym eligibility is determined by the number of approved Wayspots (stops + gyms) inside the same <strong>L14 S2 cell</strong>. When a new Wayspot is approved in a cell that crosses a threshold, the oldest or most-interacted-with stop becomes a gym.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 5 — TESTING
+  ════════════════════════════════════════════════════════════════ -->
+
+  <div class="section-label" style="margin-top:28px;">Step 3 — Verify the overlay is correct</div>
+
+  <div class="card card-accent-green">
+    <h2>How to verify cell accuracy</h2>
+    <p>Compare your overlay against the reference tool <strong>vesoyu.github.io/s2cell</strong>:</p>
+    <ol class="steps">
+      <li>Open <a href="https://vesoyu.github.io/s2cell" target="_blank">vesoyu.github.io/s2cell</a> in a separate tab. Navigate to the same location as your Wayfarer map.</li>
+      <li>Enable <strong>L14</strong> on vesoyu's map. The thick blue grid lines on Wayfarer should line up exactly with vesoyu's L14 boundaries.</li>
+      <li>Enable <strong>L17</strong> on vesoyu's map. The thin yellow lines on Wayfarer should match perfectly.</li>
+      <li>Pan and zoom on Wayfarer — the grid should update within 1–2 seconds after you stop moving (<em>idle</em> event).</li>
+    </ol>
+
+    <hr>
+
+    <h3>Common problems &amp; fixes</h3>
+    <ul class="steps">
+      <li>
+        <strong>Panel says "Map not found"</strong> — the bookmarklet was run before the Wayfarer map fully loaded.
+        Wait for the map to appear, then tap the bookmark again.
+      </li>
+      <li>
+        <strong>No cells visible at all</strong> — check you are zoomed in enough. L14 cells appear at zoom 11+, L17 at zoom 14+. On Wayfarer the nomination map is typically at zoom 15–17.
+      </li>
+      <li>
+        <strong>Panel is hidden</strong> — click / tap the bookmarklet again to toggle the panel back on.
+      </li>
+      <li>
+        <strong>Cells drift slightly after panning</strong> — this is normal; the grid redraws on each <em>idle</em> event (≈0.5 s after you stop). There is no visual lag mid-pan by design, keeping the map usable.
+      </li>
+      <li>
+        <strong>Wayfarer updated and the map broke</strong> — the bookmarklet finds the Google Maps instance by scanning DOM element properties. If Niantic changes the page structure significantly this can stop working. Re-run from this page — an updated version will be here.
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════════════ -->
+
+  <p style="text-align:center;font-size:12px;color:#444;margin-top:32px;">
+    Bookmarklet is 100% client-side. No data is sent anywhere. S2 geometry computed locally.<br>
+    Companion standalone map: <a href="index.html">index.html</a>
+  </p>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────
+    // THE BOOKMARKLET SOURCE
+    // Written as readable JS here; encoded below for the actual link.
+    // ─────────────────────────────────────────────────────────────────
+    var BM_SOURCE = (function(){
+      // Return the raw JS string (not yet wrapped in javascript:)
+      // This is a function so the source can be read cleanly in devtools.
+      return [
+        "(function(){",
+        "var P='__s2wf';",
+        "var ex=document.getElementById(P);",
+        "if(ex){ex.style.display=ex.style.display==='none'?'block':'none';return;}",
+
+        // ── S2 Math ──────────────────────────────────────────────────
+        "function rad(d){return d*Math.PI/180}",
+        "function deg(r){return r*180/Math.PI}",
+        "function llv(a,b){var p=rad(a),q=rad(b);return{x:Math.cos(p)*Math.cos(q),y:Math.cos(p)*Math.sin(q),z:Math.sin(p)}}",
+        "function vll(v){return{lat:deg(Math.atan2(v.z,Math.sqrt(v.x*v.x+v.y*v.y))),lng:deg(Math.atan2(v.y,v.x))}}",
+        "function vfuv(p){",
+          "var ax=Math.abs(p.x),ay=Math.abs(p.y),az=Math.abs(p.z),f,u,v;",
+          "if(ax>ay&&ax>az){f=p.x>0?0:3;u=f===0?p.y/p.x:-p.y/p.x;v=f===0?p.z/p.x:-p.z/p.x}",
+          "else if(ay>az){f=p.y>0?1:4;u=f===1?-p.x/p.y:p.x/p.y;v=f===1?p.z/p.y:-p.z/p.y}",
+          "else{f=p.z>0?2:5;u=f===2?-p.x/p.z:p.x/p.z;v=f===2?-p.y/p.z:p.y/p.z}",
+          "return{f:f,u:u,v:v}",
+        "}",
+        "function u2s(u){return u>=0?0.5*Math.sqrt(1+3*u):1-0.5*Math.sqrt(1-3*u)}",
+        "function s2u(s){return s>=0.5?(4*s*s-1)/3:(1-4*(1-s)*(1-s))/3}",
+        "function s2ij(s,lv){var c=1<<lv;return Math.max(0,Math.min(c-1,Math.floor(s*c)))}",
+        "function crnrs(f,i,j,lv){",
+          "var sc=1/(1<<lv);",
+          "function sp(di,dj){",
+            "var si=(i+di)*sc,sj=(j+dj)*sc,u=s2u(si),v=s2u(sj),w,ln;",
+            "switch(f){",
+              "case 0:w={x:1,y:u,z:v};break;",
+              "case 1:w={x:-u,y:1,z:v};break;",
+              "case 2:w={x:-u,y:-v,z:1};break;",
+              "case 3:w={x:-1,y:-v,z:-u};break;",
+              "case 4:w={x:v,y:-1,z:-u};break;",
+              "case 5:w={x:v,y:u,z:-1};break;",
+            "}",
+            "ln=Math.sqrt(w.x*w.x+w.y*w.y+w.z*w.z);",
+            "return vll({x:w.x/ln,y:w.y/ln,z:w.z/ln})",
+          "}",
+          "return[sp(0,0),sp(1,0),sp(1,1),sp(0,1)]",
+        "}",
+        "function gcells(s1,w1,n1,e1,lv){",
+          "var cs=[],seen={},ST=lv>=17?28:12,lt=(n1-s1)/ST,lg=(e1-w1)/ST,r,c,la,lo,xv,fv,ii,jj,k;",
+          "for(r=0;r<=ST;r++){",
+            "for(c=0;c<=ST;c++){",
+              "la=s1+r*lt;lo=w1+c*lg;",
+              "if(la<-85||la>85)continue;",
+              "xv=llv(la,lo);fv=vfuv(xv);",
+              "ii=s2ij(u2s(fv.u),lv);jj=s2ij(u2s(fv.v),lv);",
+              "k=fv.f+','+ii+','+jj;",
+              "if(seen[k])continue;seen[k]=1;",
+              "cs.push(crnrs(fv.f,ii,jj,lv))",
+            "}",
+          "}",
+          "return cs",
+        "}",
+
+        // ── Find Google Maps instance ────────────────────────────────
+        "function fmap(){",
+          "if(!window.google||!window.google.maps||!window.google.maps.Map)return null;",
+          "var ds=document.querySelectorAll('div'),i,el,ks,j,v;",
+          "for(i=0;i<ds.length;i++){",
+            "el=ds[i];ks=Object.keys(el);",
+            "for(j=0;j<ks.length;j++){",
+              "try{v=el[ks[j]];if(v instanceof window.google.maps.Map)return v}catch(e){}",
+            "}",
+          "}",
+          "return null",
+        "}",
+
+        // ── Overlay state ────────────────────────────────────────────
+        "var gm=null,po={l14:[],l17:[]},sh={l14:true,l17:true};",
+        "function clr(lv){for(var i=0;i<po[lv].length;i++)po[lv][i].setMap(null);po[lv]=[]}",
+        "function draw(){",
+          "if(!gm)return;",
+          "var b=gm.getBounds();if(!b)return;",
+          "var sw=b.getSouthWest(),ne=b.getNorthEast(),z=gm.getZoom();",
+          "clr('l14');clr('l17');",
+          "if(sh.l14&&z>=11){",
+            "gcells(sw.lat(),sw.lng(),ne.lat(),ne.lng(),14).forEach(function(c){",
+              "po.l14.push(new window.google.maps.Polygon({",
+                "paths:c.map(function(p){return{lat:p.lat,lng:p.lng}}),",
+                "strokeColor:'#4dabf7',strokeWeight:3,strokeOpacity:.9,",
+                "fillOpacity:.04,fillColor:'#4dabf7',map:gm",
+              "}))",
+            "})",
+          "}",
+          "if(sh.l17&&z>=14){",
+            "gcells(sw.lat(),sw.lng(),ne.lat(),ne.lng(),17).forEach(function(c){",
+              "po.l17.push(new window.google.maps.Polygon({",
+                "paths:c.map(function(p){return{lat:p.lat,lng:p.lng}}),",
+                "strokeColor:'#ffd600',strokeWeight:1.5,strokeOpacity:.85,",
+                "fillOpacity:0,map:gm",
+              "}))",
+            "})",
+          "}",
+        "}",
+
+        // ── Panel button factory ─────────────────────────────────────
+        "function mkb(lbl,col,act,cb){",
+          "var b=document.createElement('button'),on=act;",
+          "function upd(){",
+            "b.style.cssText='padding:6px 0;border-radius:6px;border:2px solid '+(on?col:'rgba(255,255,255,.2)')+",
+              "';background:'+(on?col+'28':'transparent')+",
+              "';color:'+(on?col:'#666')+",
+              "';font-size:13px;font-weight:700;cursor:pointer;width:100%;font-family:inherit'",
+          "}",
+          "b.textContent=lbl;upd();",
+          "b.addEventListener('click',function(){on=!on;upd();cb(on)});",
+          "return b",
+        "}",
+
+        // ── Build panel ──────────────────────────────────────────────
+        "var pn=document.createElement('div');",
+        "pn.id=P;",
+        "pn.style.cssText='position:fixed;top:70px;right:10px;z-index:2147483647;"+
+          "background:rgba(8,8,22,.93);border:1px solid rgba(255,255,255,.15);"+
+          "border-radius:10px;padding:10px;font-family:-apple-system,sans-serif;"+
+          "color:#eee;box-shadow:0 4px 24px rgba(0,0,0,.65);"+
+          "display:flex;flex-direction:column;gap:7px;min-width:108px';",
+
+        "var hd=document.createElement('div');",
+        "hd.style.cssText='display:flex;justify-content:space-between;align-items:center';",
+        "var tl=document.createElement('span');",
+        "tl.textContent='S2 Cells';",
+        "tl.style.cssText='font-weight:700;color:#4fc3f7;font-size:12px';",
+        "var xb=document.createElement('button');",
+        "xb.textContent='\\u2715';",
+        "xb.style.cssText='background:none;border:none;color:#777;cursor:pointer;font-size:15px;padding:0;line-height:1;font-family:inherit';",
+        "xb.addEventListener('click',function(){pn.style.display='none'});",
+        "hd.appendChild(tl);hd.appendChild(xb);pn.appendChild(hd);",
+
+        "pn.appendChild(mkb('L14','#4dabf7',true,function(on){sh.l14=on;on?draw():clr('l14')}));",
+        "pn.appendChild(mkb('L17','#ffd600',true,function(on){sh.l17=on;on?draw():clr('l17')}));",
+
+        "var st=document.createElement('div');",
+        "st.style.cssText='font-size:10px;color:#555;text-align:center';",
+        "st.textContent='Locating map\\u2026';",
+        "pn.appendChild(st);",
+        "document.body.appendChild(pn);",
+
+        // ── Init with retry ──────────────────────────────────────────
+        "var att=0;",
+        "function init(){",
+          "gm=fmap();",
+          "if(gm){",
+            "st.style.color='#4caf50';st.textContent='\\u2714 Active';",
+            "window.google.maps.event.addListener(gm,'idle',draw);",
+            "draw()",
+          "}else if(att++<8){",
+            "setTimeout(init,700)",
+          "}else{",
+            "st.style.color='#f66';st.textContent='Map not found'",
+          "}",
+        "}",
+        "init()",
+        "})();"
+      ].join('');
+    })();
+
+    // ── Wire up the page ──────────────────────────────────────────
+    var fullUrl = 'javascript:' + encodeURIComponent(BM_SOURCE);
+
+    // Set drag link href
+    document.getElementById('bm-link').href = fullUrl;
+
+    // Populate textarea
+    document.getElementById('bm-text').value = fullUrl;
+
+    // Copy button
+    function copyCode() {
+      var ta = document.getElementById('bm-text');
+      var btn = document.getElementById('copy-btn');
+      ta.select();
+      ta.setSelectionRange(0, 99999);
+      try {
+        navigator.clipboard.writeText(ta.value).then(function() {
+          btn.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 2000);
+        });
+      } catch (e) {
+        document.execCommand('copy');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+    }
+
+    // Platform tabs
+    function switchTab(id) {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('tab-' + id).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
