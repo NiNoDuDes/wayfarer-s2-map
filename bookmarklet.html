@@ -461,13 +461,367 @@
 
   <script>
     // ─────────────────────────────────────────────────────────────────
-    // THE BOOKMARKLET SOURCE
-    // Written as readable JS here; encoded below for the actual link.
+    // BOOKMARKLET — written as a real JS function so it has syntax
+    // highlighting and can be linted. toString() serialises it for the
+    // javascript: URL. Keep everything self-contained inside the fn.
     // ─────────────────────────────────────────────────────────────────
-    var BM_SOURCE = (function(){
-      // Return the raw JS string (not yet wrapped in javascript:)
-      // This is a function so the source can be read cleanly in devtools.
-      return [
+    function BOOKMARKLET_FN() {
+
+      // ── Guard: toggle panel if already injected ───────────────────
+      var P = '__s2wf';
+      var ex = document.getElementById(P);
+      if (ex) { ex.style.display = ex.style.display === 'none' ? 'block' : 'none'; return; }
+
+      // ── S2 Math ───────────────────────────────────────────────────
+      function rad(d) { return d * Math.PI / 180; }
+      function deg(r) { return r * 180 / Math.PI; }
+      function llv(a, b) {
+        var p = rad(a), q = rad(b);
+        return { x: Math.cos(p) * Math.cos(q), y: Math.cos(p) * Math.sin(q), z: Math.sin(p) };
+      }
+      function vll(v) {
+        return { lat: deg(Math.atan2(v.z, Math.sqrt(v.x*v.x + v.y*v.y))), lng: deg(Math.atan2(v.y, v.x)) };
+      }
+      function vfuv(p) {
+        var ax = Math.abs(p.x), ay = Math.abs(p.y), az = Math.abs(p.z), f, u, v;
+        if (ax > ay && ax > az) {
+          f = p.x > 0 ? 0 : 3; u = f===0 ? p.y/p.x : -p.y/p.x; v = f===0 ? p.z/p.x : -p.z/p.x;
+        } else if (ay > az) {
+          f = p.y > 0 ? 1 : 4; u = f===1 ? -p.x/p.y : p.x/p.y; v = f===1 ? p.z/p.y : -p.z/p.y;
+        } else {
+          f = p.z > 0 ? 2 : 5; u = f===2 ? -p.x/p.z : p.x/p.z; v = f===2 ? -p.y/p.z : p.y/p.z;
+        }
+        return { f: f, u: u, v: v };
+      }
+      function u2s(u) { return u >= 0 ? 0.5*Math.sqrt(1+3*u) : 1-0.5*Math.sqrt(1-3*u); }
+      function s2u(s) { return s >= 0.5 ? (4*s*s-1)/3 : (1-4*(1-s)*(1-s))/3; }
+      function s2ij(s, lv) { var c = 1<<lv; return Math.max(0, Math.min(c-1, Math.floor(s*c))); }
+      function crnrs(f, i, j, lv) {
+        var sc = 1/(1<<lv);
+        function sp(di, dj) {
+          var si=(i+di)*sc, sj=(j+dj)*sc, u=s2u(si), v=s2u(sj), w, ln;
+          switch(f) {
+            case 0: w={x:1,y:u,z:v}; break; case 1: w={x:-u,y:1,z:v}; break;
+            case 2: w={x:-u,y:-v,z:1}; break; case 3: w={x:-1,y:-v,z:-u}; break;
+            case 4: w={x:v,y:-1,z:-u}; break; case 5: w={x:v,y:u,z:-1}; break;
+          }
+          ln = Math.sqrt(w.x*w.x + w.y*w.y + w.z*w.z);
+          return vll({x:w.x/ln, y:w.y/ln, z:w.z/ln});
+        }
+        return [sp(0,0), sp(1,0), sp(1,1), sp(0,1)];
+      }
+      function gcells(s1, w1, n1, e1, lv) {
+        var cs=[], seen={}, ST=lv>=17?28:12, lt=(n1-s1)/ST, lg=(e1-w1)/ST;
+        for (var r=0; r<=ST; r++) {
+          for (var c=0; c<=ST; c++) {
+            var la=s1+r*lt, lo=w1+c*lg;
+            if (la<-85||la>85) continue;
+            var xv=llv(la,lo), fv=vfuv(xv);
+            var ii=s2ij(u2s(fv.u),lv), jj=s2ij(u2s(fv.v),lv);
+            var k=fv.f+','+ii+','+jj;
+            if (seen[k]) continue; seen[k]=1;
+            cs.push(crnrs(fv.f,ii,jj,lv));
+          }
+        }
+        return cs;
+      }
+
+      // ── Toast notification ────────────────────────────────────────
+      function showToast(msg) {
+        var t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+          'background:rgba(10,10,25,.96);color:#fff;padding:10px 22px;border-radius:20px;' +
+          'font-size:13px;z-index:2147483647;pointer-events:none;white-space:nowrap;' +
+          'border:1px solid rgba(255,255,255,.15);font-family:-apple-system,sans-serif;' +
+          'box-shadow:0 4px 20px rgba(0,0,0,.5)';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function() { try { document.body.removeChild(t); } catch(e) {} }, 3500);
+      }
+
+      // ── State ─────────────────────────────────────────────────────
+      var gm = null, po = {l14:[], l17:[]}, sh = {l14:true, l17:true};
+      var stEl = null, retryTimer = null;
+
+      // ── Draw cells ────────────────────────────────────────────────
+      function clr(lv) { for (var i=0; i<po[lv].length; i++) po[lv][i].setMap(null); po[lv]=[]; }
+      function draw() {
+        if (!gm) return;
+        var b = gm.getBounds(); if (!b) return;
+        var sw=b.getSouthWest(), ne=b.getNorthEast(), z=gm.getZoom();
+        clr('l14'); clr('l17');
+        if (sh.l14 && z>=11) {
+          gcells(sw.lat(),sw.lng(),ne.lat(),ne.lng(),14).forEach(function(c) {
+            po.l14.push(new window.google.maps.Polygon({
+              paths: c.map(function(p){return{lat:p.lat,lng:p.lng};}),
+              strokeColor:'#4dabf7', strokeWeight:3, strokeOpacity:.9,
+              fillOpacity:.04, fillColor:'#4dabf7', map:gm
+            }));
+          });
+        }
+        if (sh.l17 && z>=14) {
+          gcells(sw.lat(),sw.lng(),ne.lat(),ne.lng(),17).forEach(function(c) {
+            po.l17.push(new window.google.maps.Polygon({
+              paths: c.map(function(p){return{lat:p.lat,lng:p.lng};}),
+              strokeColor:'#ffd600', strokeWeight:1.5, strokeOpacity:.85,
+              fillOpacity:0, map:gm
+            }));
+          });
+        }
+      }
+
+      // ── On map found ──────────────────────────────────────────────
+      function onMapFound(instance) {
+        if (gm) return;
+        gm = instance;
+        if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
+        if (stEl) { stEl.style.color='#4caf50'; stEl.textContent='✔ Active'; }
+        showToast('Map found! Drawing cells…');
+        window.google.maps.event.addListener(gm, 'idle', draw);
+        draw();
+      }
+
+      // ── Map finder: check one object for a Map instance ───────────
+      // Checks direct properties (including non-enumerable) and also
+      // traverses one level into arrays/sub-objects (covers Angular
+      // component state stored in __ngContext__ arrays).
+      function checkObj(obj) {
+        if (!obj || typeof obj !== 'object') return null;
+        try { if (obj instanceof window.google.maps.Map) return obj; } catch(e) {}
+        var names;
+        try { names = Object.getOwnPropertyNames(obj); } catch(e) { names = []; }
+        for (var i=0; i<names.length; i++) {
+          try {
+            var v = obj[names[i]];
+            if (v && v instanceof window.google.maps.Map) return v;
+          } catch(e) {}
+        }
+        return null;
+      }
+
+      // ── Map finder: check a DOM element and its Angular context ───
+      function checkEl(el) {
+        if (!el) return null;
+        // Direct properties on the element
+        var r = checkObj(el);
+        if (r) return r;
+        // Angular 14+ stores component state in __ngContext__ (an array)
+        try {
+          var ctx = el.__ngContext__;
+          if (ctx) {
+            var arr = Array.isArray(ctx) ? ctx : Object.values(ctx);
+            for (var i=0; i<arr.length; i++) {
+              try {
+                var item = arr[i];
+                if (!item || typeof item !== 'object') continue;
+                // Direct match
+                var m = checkObj(item);
+                if (m) return m;
+                // One level deeper into sub-objects (e.g. service.mapRef.googleMap)
+                var subkeys = Object.keys(item);
+                for (var j=0; j<subkeys.length && j<60; j++) {
+                  try {
+                    var sub = item[subkeys[j]];
+                    if (sub && typeof sub === 'object') {
+                      var m2 = checkObj(sub);
+                      if (m2) return m2;
+                    }
+                  } catch(e) {}
+                }
+              } catch(e) {}
+            }
+          }
+        } catch(e) {}
+        return null;
+      }
+
+      // ── Map finder: full DOM + Angular + window scan ──────────────
+      function scanForMap() {
+        if (!window.google || !window.google.maps || !window.google.maps.Map) return null;
+
+        // Walk UP from .gm-style — go 40 levels to cover any Angular nesting depth.
+        // The map instance is typically stored on the Angular component element that
+        // wraps the Maps container, which can be many levels above .gm-style.
+        var gms = document.querySelector('.gm-style');
+        if (gms) {
+          var el = gms.parentElement;
+          for (var d=0; d<40 && el; d++) {
+            var r = checkEl(el);
+            if (r) return r;
+            el = el.parentElement;
+          }
+        }
+
+        // Broad scan: every element on the page (catches shadow roots too)
+        var allEls = document.querySelectorAll('*');
+        for (var i=0; i<allEls.length; i++) {
+          var f = checkEl(allEls[i]);
+          if (f) return f;
+        }
+
+        // Angular 14+ injector API (window.ng.getInjector)
+        try {
+          if (window.ng && window.ng.getInjector) {
+            var root = document.querySelector('app-root') || document.body;
+            var inj = window.ng.getInjector(root);
+            if (inj && inj._records) {
+              inj._records.forEach(function(rec) {
+                if (gm) return;
+                try {
+                  var svc = rec && rec.value;
+                  if (!svc || typeof svc !== 'object') return;
+                  var fm = checkObj(svc);
+                  if (fm) { gm = fm; return; }
+                  Object.keys(svc).forEach(function(k) {
+                    if (gm) return;
+                    try {
+                      var sub = svc[k];
+                      if (sub && typeof sub === 'object') {
+                        var fm2 = checkObj(sub);
+                        if (fm2) gm = fm2;
+                      }
+                    } catch(e) {}
+                  });
+                } catch(e) {}
+              });
+              if (gm) return gm;
+            }
+          }
+        } catch(e) {}
+
+        // Window-level globals (works if the app stores map in a global var)
+        try {
+          var wk = Object.keys(window);
+          for (var j=0; j<wk.length; j++) {
+            try { var v2=window[wk[j]]; if (v2 && v2 instanceof window.google.maps.Map) return v2; } catch(e) {}
+          }
+        } catch(e) {}
+
+        return null;
+      }
+
+      // ── Map finder: prototype-method patching ─────────────────────
+      // Patches google.maps.Map.prototype so the NEXT time ANY map method
+      // is called (by the page's own code) we capture `this` as the instance.
+      // Then dispatches several events to provoke the existing map to fire.
+      function installProtoCapture() {
+        if (!window.google || !window.google.maps || !window.google.maps.Map) return;
+        var proto = window.google.maps.Map.prototype;
+        var methods = ['getBounds','getCenter','getZoom','setCenter','panTo','setZoom',
+                       'fitBounds','setMapTypeId','getDiv','panBy','setOptions'];
+        var originals = {}, done = false;
+        methods.forEach(function(m) {
+          if (!proto[m]) return;
+          try {
+            originals[m] = proto[m];
+            proto[m] = function() {
+              if (!done && !gm) {
+                done = true;
+                methods.forEach(function(k) { try { if (originals[k]) proto[k]=originals[k]; } catch(e) {} });
+                onMapFound(this);
+              }
+              return originals[m].apply(this, arguments);
+            };
+          } catch(e) {}
+        });
+        // Dispatch events on window AND on the map's container element.
+        // resize causes Google Maps to call getBounds/getCenter internally.
+        try { window.dispatchEvent(new Event('resize')); } catch(e) {}
+        try {
+          var gms2 = document.querySelector('.gm-style');
+          if (gms2 && gms2.parentElement) {
+            var cont = gms2.parentElement;
+            cont.dispatchEvent(new Event('resize', {bubbles:true}));
+            // mousemove inside the map container nudges Angular change detection
+            cont.dispatchEvent(new MouseEvent('mousemove', {bubbles:true, clientX:1, clientY:1}));
+          }
+        } catch(e) {}
+        // Trigger window scroll — some Angular map wrappers respond to this
+        try { window.dispatchEvent(new Event('scroll')); } catch(e) {}
+      }
+
+      // ── Panel button factory ──────────────────────────────────────
+      function mkb(lbl, col, act, cb) {
+        var b = document.createElement('button'), on = act;
+        function upd() {
+          b.style.cssText = 'padding:6px 0;border-radius:6px;border:2px solid ' +
+            (on?col:'rgba(255,255,255,.2)') + ';background:' + (on?col+'28':'transparent') +
+            ';color:' + (on?col:'#666') + ';font-size:13px;font-weight:700;cursor:pointer;width:100%;font-family:inherit';
+        }
+        b.textContent = lbl; upd();
+        b.addEventListener('click', function() { on=!on; upd(); cb(on); });
+        return b;
+      }
+
+      // ── Build floating panel ──────────────────────────────────────
+      var pn = document.createElement('div');
+      pn.id = P;
+      pn.style.cssText = 'position:fixed;top:70px;right:10px;z-index:2147483647;' +
+        'background:rgba(8,8,22,.93);border:1px solid rgba(255,255,255,.15);' +
+        'border-radius:10px;padding:10px;font-family:-apple-system,sans-serif;color:#eee;' +
+        'box-shadow:0 4px 24px rgba(0,0,0,.65);display:flex;flex-direction:column;gap:7px;min-width:108px';
+      var hd = document.createElement('div');
+      hd.style.cssText = 'display:flex;justify-content:space-between;align-items:center';
+      var tl = document.createElement('span');
+      tl.textContent = 'S2 Cells'; tl.style.cssText = 'font-weight:700;color:#4fc3f7;font-size:12px';
+      var xb = document.createElement('button');
+      xb.textContent = '✕';
+      xb.style.cssText = 'background:none;border:none;color:#777;cursor:pointer;font-size:15px;padding:0;line-height:1;font-family:inherit';
+      xb.addEventListener('click', function() { pn.style.display='none'; });
+      hd.appendChild(tl); hd.appendChild(xb); pn.appendChild(hd);
+      pn.appendChild(mkb('L14','#4dabf7',true,function(on){sh.l14=on; on?draw():clr('l14');}));
+      pn.appendChild(mkb('L17','#ffd600',true,function(on){sh.l17=on; on?draw():clr('l17');}));
+      stEl = document.createElement('div');
+      stEl.style.cssText = 'font-size:10px;color:#888;text-align:center';
+      stEl.textContent = 'Searching…';
+      pn.appendChild(stEl);
+      document.body.appendChild(pn);
+
+      // ── Init ──────────────────────────────────────────────────────
+      var found = scanForMap();
+      if (found) {
+        onMapFound(found);
+      } else {
+        // Prototype capture fires on next map method call
+        installProtoCapture();
+        // MutationObserver catches maps that load after bookmarklet runs
+        try {
+          var obs = new MutationObserver(function() {
+            if (gm) { obs.disconnect(); return; }
+            var f = scanForMap(); if (f) { obs.disconnect(); onMapFound(f); }
+          });
+          obs.observe(document.documentElement, {childList:true, subtree:true, attributes:true});
+          setTimeout(function() { obs.disconnect(); }, 10000);
+        } catch(e) {}
+        // Polling fallback: retry every 500 ms for up to 10 s
+        var att = 0;
+        retryTimer = setInterval(function() {
+          if (gm) { clearInterval(retryTimer); return; }
+          var f = scanForMap();
+          if (f) { clearInterval(retryTimer); onMapFound(f); return; }
+          if (++att >= 20) {
+            clearInterval(retryTimer);
+            stEl.style.color='#f66'; stEl.textContent='Map not found';
+            showToast('Map not found after 10s — try reloading');
+          }
+        }, 500);
+      }
+    }
+    // ── End of bookmarklet function ───────────────────────────────────
+
+    // Serialise BOOKMARKLET_FN into a javascript: URL.
+    // toString() gives the full source; we strip the named function
+    // wrapper and turn it into a self-executing anonymous function.
+    var _src = BOOKMARKLET_FN.toString();
+    var _iife = '(' + _src.replace(/^function\s+\w+\s*\(/, 'function(') + ')()';
+    var fullUrl = 'javascript:' + encodeURIComponent(_iife);
+
+    // Keep the old string array code below this line only as dead reference
+    // — it is no longer used. The real source is BOOKMARKLET_FN above.
+    var BM_SOURCE = _iife; // kept for textarea display
+
+    // Stub so nothing below breaks
+    var _STUB = [
         "(function(){",
         "var P='__s2wf';",
         "var ex=document.getElementById(P);",
